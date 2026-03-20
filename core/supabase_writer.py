@@ -325,7 +325,7 @@ class SupabaseWriter:
             "page_number":       page_number,
             "extraction_method": extraction_method,
             "job_id":            job_id,
-            "image_crop_url":    image_crop_url,
+            "image_url":         image_crop_url,
             "keyword_score":     keyword_score,
             "brief_id":          brief_id,
             "keyword_matches":   article_match.get("keyword_matches", []),
@@ -348,7 +348,7 @@ class SupabaseWriter:
             "published_at":     _now_iso(),
             "source_tier":      3,          # tier-3 = curated/scraped source
             "is_tagged":        False,
-            "analysis_status":  "pending",
+            "analysis_status":  "complete",
         }
 
         # Resolve client_id: request param > env var
