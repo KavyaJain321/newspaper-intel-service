@@ -178,7 +178,7 @@ class SupabaseWriter:
                         "client_id":   client_id,
                         "name":        source_name,
                         "url":         f"https://newspaper-intel/{source_name.lower().replace(' ', '-')}",
-                        "source_type": "pdf", # must match sources_source_type_check
+                        "source_type": "pdf",  # must match sources_source_type_check
                         "is_active":   True,
                         "tier":        3,
                     })
@@ -333,7 +333,7 @@ class SupabaseWriter:
 
         # Stable content fingerprints — required by ROBIN's dedup logic.
         content_hash = hashlib.md5(content.encode("utf-8", errors="replace")).hexdigest()
-        title_hash   = hashlib.md5(title.encode("utf-8", errors="replace")).hexdigest()
+        title_hash = hashlib.md5(title.encode("utf-8", errors="replace")).hexdigest()
 
         row: dict = {
             "title":            title,
@@ -403,6 +403,7 @@ class SupabaseWriter:
         source_name: str,
         pdf_url: str,
         job_id: str,
+        client_id: Optional[str] = None,
     ) -> list[str]:
         """Persist multiple matched articles, tolerating individual failures.
 
@@ -426,6 +427,7 @@ class SupabaseWriter:
                 source_name=source_name,
                 pdf_url=pdf_url,
                 job_id=job_id,
+                client_id=client_id,
             )
             if record_id:
                 inserted_ids.append(record_id)
