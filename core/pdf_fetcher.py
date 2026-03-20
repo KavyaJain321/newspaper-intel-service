@@ -47,8 +47,8 @@ _BROWSER_HEADERS = {
 
 # URL patterns that strongly suggest a PDF download link.
 _PDF_URL_PATTERNS = re.compile(
-    r"(\.pdf(\?.*)?$|/download/|/file/|/document/|/epaper/|/pdf/|"
-    r"epaper\.pdf|/edition/|/pages?/.*\.pdf)",
+    r"(\.pdf(\?.*)?$|/download/|/file/|/document/|/pdf/|"
+    r"epaper\.pdf|/pages?/.*\.pdf)",
     re.IGNORECASE,
 )
 
@@ -290,9 +290,37 @@ class PDFFetcher:
                     timeout=_FLIPBOOK_TIMEOUT * 1000,
                 )
 
+                host = _host_of(page_url)
+
+                # Special routing for portals that require clicking into an edition first
+                if "dharitriepaper.in" in host and "/edition/" not in page_url:
+                    log.info("[fetch_flipbook_pdf] Found Dharitri portal index. Looking for first edition...")
+                    edition_url = await page.evaluate('''() => {
+                        const link = Array.from(document.querySelectorAll('a')).find(a => a.href.includes('/edition/'));
+                        return link ? link.href : null;
+                    }''')
+                    if edition_url:
+                        log.info(f"[fetch_flipbook_pdf] Auto-diving into edition: {edition_url}")
+                        await page.goto(
+                            edition_url,
+                            wait_until="networkidle",
+                            timeout=_FLIPBOOK_TIMEOUT * 1000,
+                        )
+
+
                 # Platform-specific interactions to trigger PDF loading.
                 host = _host_of(page_url)
                 await self._platform_interactions(page, host)
+
+                # Check if a PDF link is just sitting in the DOM (e.g. download buttons)
+                if not pdf_url_found.done():
+                    dom_pdf = await page.evaluate('''() => {
+                        const link = Array.from(document.querySelectorAll('a')).find(a => a.href && a.href.toLowerCase().split('?')[0].endsWith('.pdf'));
+                        return link ? link.href : null;
+                    }''')
+                    if dom_pdf:
+                        log.info(f"[fetch_flipbook_pdf] Found PDF link directly in DOM: {dom_pdf}")
+                        pdf_url_found.set_result(dom_pdf)
 
                 # Wait for the PDF URL future with our timeout.
                 try:
