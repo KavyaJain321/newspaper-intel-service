@@ -1,0 +1,56 @@
+# render.yaml
+# Render.com deployment — single web service, no Redis, no separate worker.
+# Jobs run in FastAPI BackgroundTasks (thread pool) within the same process.
+
+services:
+  - type: web
+    name: newspaper-intel-service
+    runtime: python
+    region: singapore
+    plan: free
+
+    buildCommand: >-
+      pip install -r requirements.txt &&
+      playwright install chromium &&
+      playwright install-deps chromium
+
+    startCommand: uvicorn app:app --host 0.0.0.0 --port 8000
+
+    healthCheckPath: /health
+
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.0"
+
+      - key: SUPABASE_URL
+        sync: false
+
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+
+      - key: SERVICE_SECRET_KEY
+        sync: false
+
+      - key: MAX_PDF_SIZE_MB
+        value: "50"
+
+      - key: OCR_CONFIDENCE_THRESHOLD
+        value: "0.6"
+
+      - key: LOG_LEVEL
+        value: "INFO"
+
+      - key: CORS_ORIGINS
+        sync: false
+
+      - key: RENDER_EXTERNAL_URL
+        sync: false
+
+      - key: ACTIVE_SOURCES
+        value: "all"
+
+      - key: HINDU_EMAIL
+        sync: false
+
+      - key: HINDU_PASSWORD
+        sync: false

@@ -1,0 +1,54 @@
+# Environment — never commit real credentials
+.env
+.env.local
+.env.*.local
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+
+# Virtual environments
+venv/
+venv311/
+.venv/
+env/
+.env/
+ENV/
+
+# Temp files and generated outputs
+/tmp/
+*.pdf
+
+# Log files
+/logs/
+*.log
+
+# OCR model caches — large binary downloads, not source code
+.paddleocr/
+.EasyOCR/
+.cache/
+
+# IDE / OS
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Build / dist
+dist/
+build/
+*.egg-info/
+.eggs/
+
+# pytest
+.pytest_cache/
+.coverage
+htmlcov/
+
+# mypy / type checkers
+.mypy_cache/
+.dmypy.json
