@@ -52,7 +52,6 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # ---------------------------------------------------------------------------
 RUN apt-get update && apt-get install -y --no-install-recommends \
     fonts-unifont \
-    fonts-ubuntu \
     fonts-liberation \
     fonts-noto-color-emoji \
     libnss3 \
