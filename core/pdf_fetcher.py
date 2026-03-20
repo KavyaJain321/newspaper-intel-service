@@ -23,7 +23,7 @@ _MAX_PDF_MB = float(os.getenv("MAX_PDF_SIZE_MB", "50"))
 _MAX_PDF_BYTES = int(_MAX_PDF_MB * 1024 * 1024)
 
 _DIRECT_TIMEOUT = 30.0          # seconds for httpx requests
-_FLIPBOOK_TIMEOUT = 30.0        # seconds to wait for a PDF URL in network traffic
+_FLIPBOOK_TIMEOUT = 60.0        # seconds to wait for a PDF URL in network traffic
 _MAX_REDIRECTS = 5
 
 _BROWSER_HEADERS = {
@@ -291,22 +291,70 @@ class PDFFetcher:
                 )
 
                 host = _host_of(page_url)
+                from urllib.parse import urlparse
+                parsed_url = urlparse(page_url)
 
-                # Special routing for portals that require clicking into an edition first
-                if "dharitriepaper.in" in host and "/edition/" not in page_url:
-                    log.info("[fetch_flipbook_pdf] Found Dharitri portal index. Looking for first edition...")
+                # Generic routing for ANY portal index (e.g. epaper.jagran.com, dharitriepaper.in)
+                # If we are on the root or generic /epaper path, auto-click into the first logical edition.
+                if parsed_url.path.strip("/") in ("", "epaper", "home"):
+                    log.info(f"[fetch_flipbook_pdf] Detected index portal ({host}). Searching for latest edition link...")
                     edition_url = await page.evaluate('''() => {
-                        const link = Array.from(document.querySelectorAll('a')).find(a => a.href.includes('/edition/'));
-                        return link ? link.href : null;
+                        const links = Array.from(document.querySelectorAll('a[href]'));
+                        
+                        // Strategy 1: Explicit newspaper viewer keywords in URL
+                        let target = links.find(a => {
+                            const h = a.href.toLowerCase();
+                            if (h.includes('javascript:')) return false;
+                            try {
+                                const u = new URL(a.href);
+                                if (u.hostname !== window.location.hostname) return false;
+                            } catch(e) {}
+                            return /\b(edition|read|view|show|today|epaper)\b/i.test(h);
+                        });
+                        
+                        // Strategy 2: First local link that goes deeper than the root
+                        if (!target) {
+                            target = links.find(a => {
+                                try {
+                                    const u = new URL(a.href);
+                                    if (u.hostname === window.location.hostname && u.pathname.length > 5) {
+                                        const p = u.pathname.toLowerCase();
+                                        return !p.includes('login') && !p.includes('about') && !p.includes('contact') && !p.includes('subscribe');
+                                    }
+                                } catch(e) {}
+                                return false;
+                            });
+                        }
+                        
+                        // Strategy 3: Click a logical button directly if JS powered (like Jagran)
+                        if (!target) {
+                            const texts = ["read", "proceed", "आगे", "today", "edition", "delhi", "bhubaneswar", "epaper"];
+                            const interactables = Array.from(document.querySelectorAll('a, button, li, span, div.edition-box'));
+                            for (const txt of texts) {
+                                const el = interactables.find(e => e.innerText && e.innerText.toLowerCase().includes(txt));
+                                if (el) {
+                                    el.click();
+                                    return 'CLICKED_DOM';
+                                }
+                            }
+                        }
+                        
+                        return target ? target.href : null;
                     }''')
-                    if edition_url:
+                    
+                    if edition_url == 'CLICKED_DOM':
+                        log.info(f"[fetch_flipbook_pdf] Auto-clicked a logical edition element. Waiting for navigation...")
+                        await page.wait_for_timeout(5000)
+                        host = _host_of(page.url)
+                    elif edition_url:
                         log.info(f"[fetch_flipbook_pdf] Auto-diving into edition: {edition_url}")
                         await page.goto(
                             edition_url,
                             wait_until="networkidle",
                             timeout=_FLIPBOOK_TIMEOUT * 1000,
                         )
-
+                        # Re-evaluate the host in case we crossed subdomains
+                        host = _host_of(edition_url)
 
                 # Platform-specific interactions to trigger PDF loading.
                 host = _host_of(page_url)
