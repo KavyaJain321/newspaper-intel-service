@@ -316,6 +316,11 @@ class SupabaseWriter:
         # type_metadata mirrors the existing ROBIN schema — JSON blob for
         # newspaper-specific fields that have no dedicated column.
         type_metadata = {
+            "newspaper":         source_name,
+            "language":          language,
+            "fuzzy_score":       round(keyword_score * 100) if keyword_score <= 1.0 else int(keyword_score),
+            "source_type":       "newspaper-intel-service",
+            "extracted_by":      "newspaper-intel-service",
             "bounding_box":      bbox,
             "page_number":       page_number,
             "extraction_method": extraction_method,
@@ -323,7 +328,6 @@ class SupabaseWriter:
             "image_crop_url":    image_crop_url,
             "keyword_score":     keyword_score,
             "brief_id":          brief_id,
-            "source_name":       source_name,
             "keyword_matches":   article_match.get("keyword_matches", []),
         }
 
@@ -335,7 +339,7 @@ class SupabaseWriter:
             "title":            title,
             "content":          content,
             "url":              pdf_url,
-            "content_type":     "pdf",  # must match content_items_content_type_check
+            "content_type":     "newspaper",  # migration-008 added this to the CHECK constraint
             "matched_keywords": matched_keywords,
             "language":         language,
             "type_metadata":    type_metadata,

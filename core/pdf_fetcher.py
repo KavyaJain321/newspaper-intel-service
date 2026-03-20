@@ -23,7 +23,7 @@ _MAX_PDF_MB = float(os.getenv("MAX_PDF_SIZE_MB", "50"))
 _MAX_PDF_BYTES = int(_MAX_PDF_MB * 1024 * 1024)
 
 _DIRECT_TIMEOUT = 30.0          # seconds for httpx requests
-_FLIPBOOK_TIMEOUT = 15.0        # seconds to wait for a PDF URL in network traffic
+_FLIPBOOK_TIMEOUT = 30.0        # seconds to wait for a PDF URL in network traffic
 _MAX_REDIRECTS = 5
 
 _BROWSER_HEADERS = {
@@ -60,6 +60,18 @@ _FLIPBOOK_HOSTS = {
     "epaper.amarujala.com",
     "epaper.jagran.com",
     "epaper.bhaskar.com",
+    "epaper.thesamaja.com",
+    "epaper.dharitri.com",
+    "epaper.timesgroup.com",
+    "epaper.hindustantimes.com",
+    "epaper.prabhatkhabar.com",
+    "epaper.deccanherald.com",
+    "epaper.tribuneindia.com",
+    "epaper.anandabazar.com",
+    "epaper.dinamalar.com",
+    "epaper.eenadu.net",
+    "epaper.mathrubhumi.com",
+    "epaper.divyabhaskar.co.in",
 }
 
 
@@ -326,6 +338,14 @@ class PDFFetcher:
                 # These Hindi epaper portals render in an iframe; wait for it to settle.
                 await page.wait_for_selector("iframe", timeout=5000)
                 await page.wait_for_timeout(3000)
+
+            elif any(h in host for h in (
+                "epaper.thesamaja.com", "epaper.dharitri.com"
+            )):
+                # Odia flipbook epapers — wait for the viewer to fully load,
+                # then give extra time for the PDF network request to fire.
+                await page.wait_for_load_state("networkidle", timeout=20000)
+                await page.wait_for_timeout(5000)
 
         except Exception as exc:
             # Interaction failures are non-fatal — the network listener may have
