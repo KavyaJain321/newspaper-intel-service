@@ -1,7 +1,8 @@
 # Dockerfile
 # Builds the Docker image for the newspaper-intel-service.
-# Installs system dependencies required by OCR libraries (Poppler, OpenCV, etc.),
+# Installs system dependencies required by OCR libraries (OpenCV, etc.),
 # installs Python packages from requirements.txt, and sets up Playwright browsers.
+# NOTE: poppler-utils is NOT needed — page rendering uses PyMuPDF directly.
 #
 # Usage:
 #   docker build -t newspaper-intel-service .
@@ -12,14 +13,18 @@ FROM python:3.11-slim
 # ---------------------------------------------------------------------------
 # System dependencies
 # ---------------------------------------------------------------------------
-# poppler-utils  — pdf2image backend (pdftoppm / pdfinfo)
-# libgl1-mesa-glx / libglib2.0-0 — OpenCV runtime (PaddleOCR, EasyOCR)
-# libsm6 / libxext6 / libxrender1 — additional OpenCV display libs
-# wget / curl    — general-purpose download tools, used by Playwright install
+# libgl1          — OpenCV runtime (replaces libgl1-mesa-glx in Debian Bookworm)
+# libglib2.0-0    — OpenCV / GLib runtime
+# libsm6          — X11 session manager (OpenCV headless)
+# libxext6        — X11 extensions (OpenCV headless)
+# libxrender1     — X rendering (OpenCV headless)
+# wget / curl     — used by playwright install
 # ca-certificates — TLS for HTTPS requests inside the container
+#
+# NOTE: python:3.11-slim is based on Debian Bookworm where libgl1-mesa-glx
+# was renamed to libgl1. Using libgl1 works on both Bullseye and Bookworm.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    poppler-utils \
-    libgl1-mesa-glx \
+    libgl1 \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
